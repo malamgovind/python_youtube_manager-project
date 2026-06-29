@@ -1,4 +1,5 @@
 import sqlite3
+import requests
 
 conn = sqlite3.connect("03_with_api/youtube.db")
 cursor = conn.cursor()
@@ -13,18 +14,80 @@ CREATE TABLE IF NOT EXISTS videos
 """)
 conn.commit()
 
+def fetch_username():
+
+    url = "https://api.freeapi.app/api/v1/public/randomusers/user/random"
+    response = requests.get(url)
+    data = response.json()
+
+    if data["success"]:
+        username = data["data"]["name"]["first"]
+        return username
+    else:
+        raise Exception("Failed to fetch username")
+
 def list_video():
-    pass
+    print("\n")
+    print("-" * 70)
+
+    cursor.execute("SELECT * FROM videos")
+    datas = cursor.fetchall()
+
+    if len(datas) == 0:
+        print("No videos Found")
+    else:
+        for data in datas:
+            print(f"ID:{data[0]} | Username: {data[1]} | Video_Name: {data[2]} | Time: {data[3]}")
+
+    print("-" * 70)
 
 def add_video():
-    pass
+    try:
+        username = fetch_username()
+        print(f"\nUsername from API: {username}")
+
+        name = input("Enter Video Name : ")
+        time = input("Enter Video Duration : ")
+
+        cursor.execute(""" INSERT INTO videos(username, name, time)
+                       VALUES(?, ?, ?)""", (username, name, time)
+                       )
+        conn.commit()
+        print("\nVideo added successfully!")
+
+    except Exception as e:
+        print(e)
 
 def update_video():
-    pass
+    list_video()
+    
+    video_id = input("\nEnter Video ID To Update : ")
+
+    name = input("Enter New Video Name : ")
+    time = input("Enter New Duration : ")
+
+    cursor.execute(""" 
+    UPDATE videos
+    SET name = ?, time = ?
+    WHERE id = ?
+    """, (name, time, video_id))
+    conn.commit()
+
+    print("\nVideo Updated Successfully!")
 
 def delete_video():
-    pass
+    list_video()
 
+    video_id = input("\nEnter Video ID To Delete : ")
+
+    cursor.execute("""
+    DELETE FROM videos
+    WHERE id = ?
+    """, (video_id,))
+
+    conn.commit()
+
+    print("\nVideo Deleted Successfully!")
 
 def main():
 
@@ -34,7 +97,6 @@ def main():
         print("=" * 50)
         print("     YouTube Manager With API + SQLite")
         print("=" * 50)
-
         print("1. List Videos")
         print("2. Add Video")
         print("3. Update Video")
